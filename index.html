@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Morat - Mi Vida Entera | Premium Experience</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@1,400;1,700&family=Syncopate:wght@700&family=Inter:wght@200;400&display=swap" rel="stylesheet">
+    <style>
+        :root { --neon: #00f2ff; --glow: rgba(0, 242, 255, 0.8); }
+        body, html { margin: 0; padding: 0; background: #000; overflow: hidden; height: 100vh; }
+
+        /* FASE 1: INTRO BANDA NEÓN */
+        #intro {
+            position: fixed; inset: 0; z-index: 500; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; background: #000; transition: 2s ease;
+        }
+        #intro-bg {
+            position: absolute; inset: 0;
+            /* Imagen de la banda con filtro neón */
+            background: url('https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop') no-repeat center center;
+            background-size: cover; opacity: 0.4; filter: saturate(2) contrast(1.2); transition: 1.5s;
+        }
+        .prep-text {
+            position: relative; font-family: 'Syncopate', sans-serif; color: #fff;
+            font-size: 2.5rem; letter-spacing: 15px; text-align: center;
+            text-shadow: 0 0 20px var(--neon), 0 0 40px var(--neon);
+            animation: pulse 2s infinite alternate; margin-bottom: 50px;
+        }
+        @keyframes pulse { from { opacity: 0.6; text-shadow: 0 0 10px var(--neon); } to { opacity: 1; text-shadow: 0 0 30px var(--neon), 0 0 50px var(--neon); } }
+        
+        .start-btn {
+            position: relative; background: none; border: 1px solid var(--neon); color: #fff;
+            padding: 15px 50px; font-family: 'Inter'; letter-spacing: 5px; cursor: pointer;
+            transition: 0.4s; box-shadow: 0 0 15px var(--glow);
+        }
+        .start-btn:hover { background: var(--neon); color: #000; box-shadow: 0 0 40px var(--neon); }
+
+        /* FASE 2: ESCENARIOS DINÁMICOS */
+        #stage { position: fixed; inset: 0; z-index: -2; }
+        .bg-layer {
+            position: absolute; inset: 0; background-size: cover; background-position: center;
+            opacity: 0; transition: opacity 3s ease, transform 20s linear; transform: scale(1.1);
+        }
+        .bg-layer.visible { opacity: 0.4 !important; transform: scale(1); }
+
+        .overlay { position: fixed; inset: 0; background: radial-gradient(circle, transparent, #000 140%); z-index: -1; }
+        .rain { position: fixed; inset: 0; background: url('https://raw.githubusercontent.com/PiyushSuthar/Rain-Effect/master/rain.png'); opacity: 0.1; animation: rain 0.3s infinite linear; z-index: -1; }
+        @keyframes rain { from { background-position: 0 0; } to { background-position: 10% 100%; } }
+
+        /* LÍRICAS */
+        .lyrics-container { position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; z-index: 10; text-align: center; }
+        #lyric-text {
+            color: #fff; font-family: 'Bodoni Moda', serif; font-style: italic; font-size: 4rem;
+            opacity: 0; filter: blur(10px); transition: all 0.8s ease;
+        }
+        #lyric-text.show { opacity: 1; filter: blur(0); }
+
+        /* UI REPRODUCTOR */
+        .player-bar {
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 300px; text-align: center; opacity: 0; transition: 1s;
+        }
+        #timer { color: var(--neon); font-family: monospace; font-size: 0.8rem; letter-spacing: 2px; }
+        .progress-bar { width: 100%; height: 1px; background: rgba(255,255,255,0.1); margin-bottom: 10px; }
+        #fill { width: 0%; height: 100%; background: var(--neon); transition: width 0.1s linear; }
+
+        #yt-player { position: absolute; top: -1000px; }
+    </style>
+</head>
+<body>
+
+    <div id="intro">
+        <div id="intro-bg"></div>
+        <h1 class="prep-text">¿ESTÁS PREPARAD@?</h1>
+        <button class="start-btn" onclick="iniciar()">SÍ, ESTOY LIST@</button>
+    </div>
+
+    <div id="stage">
+        <div class="bg-layer visible" style="background-image: url('https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=1600')"></div>
+        <div class="bg-layer" style="background-image: url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1600')"></div>
+        <div class="bg-layer" style="background-image: url('https://images.unsplash.com/photo-1439405326854-01523a114f96?w=1600')"></div>
+    </div>
+
+    <div class="rain"></div>
+    <div class="overlay"></div>
+    <div class="lyrics-container"><h1 id="lyric-text"></h1></div>
+
+    <div class="player-bar" id="ui">
+        <div class="progress-bar"><div id="fill"></div></div>
+        <span id="timer">00:00</span>
+    </div>
+
+    <div id="yt-player"></div>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        let player;
+        const lyricText = document.getElementById('lyric-text');
+        const layers = document.querySelectorAll('.bg-layer');
+
+        // SINCRONIZACIÓN (t = segundos, txt = letra, bg = fondo 0, 1 o 2)
+        const syncData = [
+            { t: 0, text: "MORAT", bg: 0 },
+            { t: 8, text: "Quiero que sepas que te quiero", bg: 0 },
+            { t: 12, text: "Y que no importa lo que pase", bg: 1 },
+            { t: 15, text: "Si estás conmigo", bg: 1 },
+            { t: 18, text: "Tengo mi vida entera", bg: 2 },
+            { t: 22, text: "Para entregártela", bg: 2 },
+            { t: 26, text: "Porque siempre fuiste tú", bg: 0 }
+        ];
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('yt-player', {
+                height: '0', width: '0',
+                videoId: 'fOnyfM-p60s', // ID de Mi Vida Entera
+                events: { 'onStateChange': e => { if(e.data === 0) document.body.style.opacity = 0; } }
+            });
+        }
+
+        function iniciar() {
+            document.getElementById('intro').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('intro').style.display = 'none';
+                document.getElementById('ui').style.opacity = '1';
+                player.playVideo();
+                setInterval(update, 100);
+            }, 1500);
+        }
+
+        function update() {
+            let now = player.getCurrentTime();
+            let dur = player.getDuration();
+            
+            // UI
+            let m = Math.floor(now/60), s = Math.floor(now%60);
+            document.getElementById('timer').innerText = `${m}:${s.toString().padStart(2,'0')}`;
+            document.getElementById('fill').style.width = (now/dur*100) + '%';
+
+            // Lógica de letras y fondos
+            let current = [...syncData].reverse().find(l => now >= l.t);
+
+            if (current && lyricText.innerText !== current.text) {
+                lyricText.classList.remove('show');
+                setTimeout(() => {
+                    lyricText.innerText = current.text;
+                    lyricText.classList.add('show');
+                    layers.forEach((l, i) => l.classList.toggle('visible', i === current.bg));
+                }, 200);
+            }
+        }
+    </script>
+</body>
+</html>
